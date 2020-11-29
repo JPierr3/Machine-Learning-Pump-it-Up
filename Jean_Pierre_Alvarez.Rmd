@@ -342,13 +342,11 @@ show_plot(x)
 
 # observamos que son pocos los valores atipicos en % asi que no es necesario convertir a missing los atipicos
 sapply(Filter(is.numeric, clean_data),function(x) atipicosAmissing(x)[[2]])/nrow(clean_data) 
-
-
 ```
 
 ### 2.3 Imputamos 
 Imputo todas las cualitativas para no perder información ya que observamos que son poco representativas la parte missing, seleccionar el tipo de imputación: moda o aleatorio para no depender de la moda
-```{r}
+```{r , results="markup"}
 # encontramos que funder e installer aun tienen los espacios y fue que no se considero anteriormente
 clean_data$funder           <-recode.na(clean_data$funder,'')
 clean_data$installer        <-recode.na(clean_data$installer,'')
@@ -359,7 +357,7 @@ clean_data[,as.vector(which(sapply(clean_data, class)=="character"))] <- lapply(
 clean_data$fe_dianum  <- as.numeric(clean_data$fe_dianum)
 
 # ya no se observan NA's
-summary(clean_data)
+#summary(clean_data)
 any(is.na(clean_data))
 ```
 
@@ -416,7 +414,96 @@ dataFinal3<-cbind(dataFinal2,dataFinal[,-numerocont])
 
 save(dataFinal3,file="Assets/Dataset Clean/5_CleanData.Rda")
 ```
-## 3) Estudio de selección de variables; selección primaria del mejor set bajo logística
+
+Convertimos las categoricas a sus frecuencias utilizando la libreria vtreat y solo nos quedamos con las variables iniciales
+```{r}
+library(vtreat)
+dataFinal3$varObj <- as.factor(dataFinal3$varObj)
+
+GS_T0 <- Sys.time()
+cluster <- parallel::makeCluster(2, setup_strategy = "sequential")
+registerDoParallel(cluster)
+  cfe_m <- mkCrossFrameMExperiment(dataFinal3, colnames(dataFinal3), 'varObj') #
+stopCluster(cluster) 
+registerDoSEQ();
+GS_T1 <- Sys.time()
+GS_T1-GS_T0
+# Time difference of 3.815571 mins
+
+str(cfe_m$cross_frame)
+dTrainCTreated <- prepare(cfe_m$treat_m, dataFinal3, pruneSig = 0.99)# obtener el dataframe ya tratado con todo limpio
+
+#revisamos las metricas de error rsq y sig
+str(dTrainCTreated)
+knitr::kable(
+  cfe_m$score_frame[, 
+                    c("varName", "rsq", "sig", "outcome_level"), 
+                    drop = FALSE]) 
+tapply(cfe_m$score_frame$rsq, 
+       cfe_m$score_frame$origName, 
+       max)
+tapply(cfe_m$score_frame$sig, 
+       cfe_m$score_frame$origName, 
+       min)
+
+
+dataset              <- cbind(dTrain_label,dTrainCTreated )
+dataset[,c(3)]       <- NULL # eliminamos la  columna de id normalizada por error anterior
+dataset$status_group <- as.factor(car::recode(dataset$status_group
+                                       , "'functional'=2 ;'functional needs repair'=1; 'non functional'=0"))
+
+#solo nos quedamos con las variables iniciales
+save(dataset,file="Assets/Dataset Clean/6_CleanData.Rda")
+```
+## 3) Estudio de selección de variables
+Para la seleccion de variable se utilizará por grafico de nivel de importancia de variables utilizando gradient boosting
+
+```{r}
+library(caret)
+library(parallel)
+library(doParallel)
+# Utilizamos solo las variables originales
+dataset <- dataset[,1:33]
+ 
+set.seed(12345)
+rfgrid<-expand.grid(mtry=c(10,20,25,30,35))
+control<-trainControl(method = "cv",number=4,savePredictions = "all") 
+
+
+GS_T0 <- Sys.time()
+cluster <- parallel::makeCluster(2, setup_strategy = "sequential")
+registerDoParallel(cluster)
+
+  rf<- train(status_group~.,data=dataset,
+             method="rf"
+             ,trControl=control
+             ,tuneGrid=rfgrid,
+             linout = TRUE,ntree=200,nodesize=20,replace=TRUE,
+             importance=TRUE)
+
+stopCluster(cluster) 
+registerDoSEQ();
+GS_T1 <- Sys.time()
+GS_T1-GS_T0
+# Time difference of 27.43567 mins
+
+rf
+```
+Observamos que el algoritmo nos recomienda mtry = 20. y obtuvo un accuracy: 0.803%  y  kappa: 0.6255881
+Graficamos:
+```{r, echo=FALSE, fig.align = "center”}
+final<-rf$finalModel
+
+tabla<-as.data.frame(final$importance)
+names(tabla)
+tabla<-tabla[order(-tabla[,c(2)]),]
+tabla
+barplot(tabla[,c(2)],names.arg=rownames(tabla), las =2, main = "Importancia de variables")
+
+```
+Observamos que las variables mas importances son (24 variables):
+> fe_lonlat, waterpoint_type_catP, quantity_catP, region_catP, lga_catP, extraction_type_class_catP, amount_tsh, funder_catP, payment_type_catP, district_code, extraction_type_group_catP, scheme_name_catP, extraction_type_catP, gps_height, basin_catP, ward_catP, fe_dianum, source_catP, installer_catP, fe_mes, region_code, population, fe_anio, source_class_catP
+
 ## 4) Tuneo-optimización comentado de cada algoritmo con el mejor set de variables obtenido anteriormente 
 ## 6) Ensamblado.
 ## 7) Conclusiones
