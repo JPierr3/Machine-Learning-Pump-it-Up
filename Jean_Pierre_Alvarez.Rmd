@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = T,results = "hide", warning=FALSE, message=F)
+knitr::opts_chunk$set(echo = T,results = "hide", warning=FALSE, message=F,eval = FALSE)
 ```
 
 # Trabajo Final
@@ -418,6 +418,9 @@ save(dataFinal3,file="Assets/Dataset Clean/5_CleanData.Rda")
 Convertimos las categoricas a sus frecuencias utilizando la libreria vtreat y solo nos quedamos con las variables iniciales
 ```{r}
 library(vtreat)
+library(parallel)
+library(doParallel)
+
 dataFinal3$varObj <- as.factor(dataFinal3$varObj)
 
 GS_T0 <- Sys.time()
@@ -491,7 +494,7 @@ rf
 ```
 Observamos que el algoritmo nos recomienda mtry = 20. y obtuvo un accuracy: 0.803%  y  kappa: 0.6255881
 Graficamos:
-```{r, echo=FALSE, fig.align = "center”}
+```{r, echo=FALSE}
 final<-rf$finalModel
 
 tabla<-as.data.frame(final$importance)
@@ -501,9 +504,59 @@ tabla
 barplot(tabla[,c(2)],names.arg=rownames(tabla), las =2, main = "Importancia de variables")
 
 ```
-Observamos que las variables mas importances son (24 variables):
-> fe_lonlat, waterpoint_type_catP, quantity_catP, region_catP, lga_catP, extraction_type_class_catP, amount_tsh, funder_catP, payment_type_catP, district_code, extraction_type_group_catP, scheme_name_catP, extraction_type_catP, gps_height, basin_catP, ward_catP, fe_dianum, source_catP, installer_catP, fe_mes, region_code, population, fe_anio, source_class_catP
+Observamos que las variables mas importances, podemos escoger dos set de varibales mayor a 0.02:
+```{r ,results="markup"}
+# los 17 primeras variables
+dput(rownames(tabla[1:15,]))
 
-## 4) Tuneo-optimización comentado de cada algoritmo con el mejor set de variables obtenido anteriormente 
-## 6) Ensamblado.
-## 7) Conclusiones
+# los 21 primeras variables
+dput(rownames(tabla[1:21,]))
+```
+
+## 4 Tuneo-optimización comentado de cada algoritmo con el mejor set de variables obtenido anteriormente 
+
+```{r}
+#optenido anteriormente
+mod1 <-c("fe_lonlat", "waterpoint_type_catP", "quantity_catP", "region_catP", 
+      "lga_catP", "extraction_type_class_catP", "amount_tsh", "funder_catP", 
+      "payment_type_catP", "district_code", "extraction_type_group_catP", 
+      "scheme_name_catP", "extraction_type_catP", "gps_height", "basin_catP")
+
+mod2 <- c("fe_lonlat", "waterpoint_type_catP", "quantity_catP", "region_catP", 
+      "lga_catP", "extraction_type_class_catP", "amount_tsh", "funder_catP", 
+      "payment_type_catP", "district_code", "extraction_type_group_catP", 
+      "scheme_name_catP", "extraction_type_catP", "gps_height", "basin_catP", 
+      "ward_catP", "fe_dianum", "source_catP", "installer_catP", "fe_mes", 
+      "region_code")
+```
+### 4.1 Redes
+Monitoreamos las redes con los dos modelos optenidos y comparamos via CV repetida
+```{r}
+library(caret)
+paste(mod1,collapse = "+")
+# se define 4 grupos y se repetira 5 veces
+
+control<-trainControl(method = "repeatedcv",number=4,repeats=5, savePredictions = "all") 
+avnnetgrid <-expand.grid(size=c(5,10,15,20),
+                         decay=c(0.01,0.1,0.001),
+                         bag=FALSE)
+GS_T0 <- Sys.time()
+cluster <- parallel::makeCluster(2, setup_strategy = "sequential")
+registerDoParallel(cluster)
+# Prorobamos con todos los parametros
+redavnnet<- train(status_group~fe_lonlat+waterpoint_type_catP+quantity_catP+region_catP+lga_catP+extraction_type_class_catP+amount_tsh+funder_catP+payment_type_catP+district_code+extraction_type_group_catP+scheme_name_catP+extraction_type_catP+gps_height+basin_catP,
+            data=dataset,
+            method="avNNet",
+            linout = FALSE,
+            maxit=100,
+            trControl=control,
+            tuneGrid=avnnetgrid,
+            repeats=5)
+
+stopCluster(cluster) 
+registerDoSEQ();
+GS_T1 <- Sys.time()
+GS_T1-GS_T0
+```
+## 6 Ensamblado.
+## 7 Conclusiones
