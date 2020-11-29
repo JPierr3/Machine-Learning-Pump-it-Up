@@ -1,6 +1,0 @@
-"0","sapply(Filter(is.factor, clean_data),function(x) atipicosAmissing(x)[[2]])/nrow(clean_data) 
-"
-"2","Error in var(if (is.vector(x) || is.factor(x)) x else as.double(x), na.rm = na.rm) : 
-  Calling var(x) on a factor x is defunct.
-  Use something like 'all(duplicated(x)[-1L])' to test for a constant vector.
-"

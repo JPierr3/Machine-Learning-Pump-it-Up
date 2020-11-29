@@ -1,5 +1,0 @@
-"0","# convertimos las variables integer a num
-clean_data[,sapply(clean_data, is.integer)]   <- lapply(clean_data[,sapply(clean_data,is.integer)], as.numeric)
-"
-"2","
-"

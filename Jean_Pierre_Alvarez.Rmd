@@ -349,15 +349,73 @@ sapply(Filter(is.numeric, clean_data),function(x) atipicosAmissing(x)[[2]])/nrow
 ### 2.3 Imputamos 
 Imputo todas las cualitativas para no perder información ya que observamos que son poco representativas la parte missing, seleccionar el tipo de imputación: moda o aleatorio para no depender de la moda
 ```{r}
+# encontramos que funder e installer aun tienen los espacios y fue que no se considero anteriormente
+clean_data$funder           <-recode.na(clean_data$funder,'')
+clean_data$installer        <-recode.na(clean_data$installer,'')
 clean_data[,as.vector(which(sapply(clean_data, class)=="factor"))]<-sapply(Filter(is.factor, clean_data),function(x) ImputacionCuali(x,"aleatorio"))
 #convertimos a factor, ya que se convirtieron a chr
 clean_data[,as.vector(which(sapply(clean_data, class)=="character"))] <- lapply(clean_data[,as.vector(which(sapply(clean_data, class)=="character"))] , factor)
 # convertimos las variable fe_dianum integer a num
 clean_data$fe_dianum  <- as.numeric(clean_data$fe_dianum)
+
+# ya no se observan NA's
+summary(clean_data)
+any(is.na(clean_data))
 ```
 
+Creamos nuevas variables para identificar la variable objetivo y los predictores
 
+```{r}
+# por el momento no lo convertiremos a factor
+save(clean_data,file="Assets/Dataset Clean/3_CleanData.Rda")
+#load("Assets/Dataset Clean/3_CleanData.Rda")
+varObj <- data_label$status_group
+input  <-clean_data
 
+# lo tenemos como backup
+dataFinal <- cbind(input,varObj)
+save(clean_data,file="Assets/Dataset Clean/4_CleanData.Rda")
+```
+### 2.4 Estandarizacion de variables continuas
+```{r}
+#conseguir la lista de variables continuas
+dput(names(input )[sapply(input , is.numeric)])
+dput(names(input )[sapply(input , is.factor)])
+
+#variables categoricas
+listclass <- c("funder", "installer", "wpt_name", "basin", "subvillage", "region", 
+              "lga", "ward", "public_meeting", "scheme_management", "scheme_name", 
+              "permit", "extraction_type", "extraction_type_group", "extraction_type_class", 
+              "management", "management_group", "payment_type", "water_quality", 
+              "quantity", "source", "source_class", "waterpoint_type", "fe_construction_year"
+              )
+# variables continuas
+listconti <- c("id", "amount_tsh", "gps_height", "num_private", "region_code", 
+              "district_code", "population", "fe_anio", "fe_mes", "fe_dianum", 
+              "fe_lonlat")
+
+# variable dependiente, en el dataframe dataFinal ya esta con ese nombre
+vardep<-"varObj"
+# ordenamos el orden de las variables
+dataFinal<-dataFinal[,c(listconti,listclass,vardep)]
+
+```
+
+Aplicamos estandarizacion de variables por media y desviación
+```{r estandarizacion}
+
+means <-apply(dataFinal[,listconti],2,mean,na.rm=TRUE)
+sds<-sapply(dataFinal[,listconti],sd,na.rm=TRUE)
+# Estandarizo solo las continuas 
+dataFinal2<-scale(dataFinal[,listconti], center = means, scale = sds)
+
+# numerocont son las columnas que corresponden a las continuas
+numerocont<-which(colnames(dataFinal)%in%listconti)
+# dataEstudiantes une estudiantes3 con solo las dummies de estudiantes2 y la dependiente
+dataFinal3<-cbind(dataFinal2,dataFinal[,-numerocont])
+
+save(dataFinal3,file="Assets/Dataset Clean/5_CleanData.Rda")
+```
 ## 3) Estudio de selección de variables; selección primaria del mejor set bajo logística
 ## 4) Tuneo-optimización comentado de cada algoritmo con el mejor set de variables obtenido anteriormente 
 ## 6) Ensamblado.

@@ -1,4 +1,0 @@
-"0",""
-"0","# memory usage barplot"
-"0","x <- inspect_mem(dTrain)# buscar que variables son muy pesadas que pueden consumir muchos recursos del ordenador"
-"0","show_plot(x)"
