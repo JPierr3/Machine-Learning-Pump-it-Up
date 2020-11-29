@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1606612449767.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "F45703FE",
+    "lastKnownWriteTime" : 1606613220,
+    "last_content_update" : 1606613220402,
+    "path" : "~/Documents/Learning/Maestria/16. Aplicaciones Big Data en la Empresa/Tarea/Competencia/Jean_Pierre_Alvarez.Rmd",
+    "project_path" : "Jean_Pierre_Alvarez.Rmd",
+    "properties" : {
+        "cursorPosition" : "21,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

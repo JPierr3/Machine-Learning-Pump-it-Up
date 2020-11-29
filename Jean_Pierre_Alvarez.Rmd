@@ -1,0 +1,27 @@
+---
+title: "PumpIt"
+author: "Jean Pierre Alvarez"
+date: "11/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+El siguiente trabajo seguirá la siguiente metodología:
+-  1) Descripción de los datos
+-  2) Depuración y codificación, estandarización y creación de dummies
+-  3) Estudio de selección de variables; selección primaria del mejor set bajo logística
+-  4) Tuneo-optimización comentado de cada algoritmo con el mejor set de variables obtenido anteriormente 
+-  6) Ensamblado.
+-  7) Conclusiones
+
+# 1) Descripción de los datos
+Una breve descripción de las columnas que contiene el data set:
+
+# 2) Depuración y codificación, estandarización y creación de dummies
+# 3) Estudio de selección de variables; selección primaria del mejor set bajo logística
+# 4) Tuneo-optimización comentado de cada algoritmo con el mejor set de variables obtenido anteriormente 
+# 6) Ensamblado.
+# 7) Conclusiones
